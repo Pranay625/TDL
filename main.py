@@ -22,7 +22,7 @@ while True:
 
     elif n == 3:
         d = int(input("Enter the position to be deleted: "))
-        tasks.delete(d)
+        tasks.pop(d)
 
     elif n == 4:
         e = input("Enter the new task")
