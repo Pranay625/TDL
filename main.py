@@ -3,14 +3,14 @@ tasks = []
 
 while True:
     print("\n\n")
-    n = int(input(print(
+    n = int(input(
     '''
     Enter the command:\n
     1 for Adding task
     2 for viewing 
     3 for deleting  
     4 for editing 
-    Anything other than this for exit. ''')))
+    Anything other than this for exit. '''))
 
     if n == 1:
         add = input("Enter the task: ")
