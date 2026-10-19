@@ -1,3 +1,8 @@
+import data_manager
+import task_service
+
+
+
 tasks = []
 print(
 '''
@@ -35,6 +40,7 @@ while True:
         else:
             task_data = {"text": add, "completed": False}
             tasks.append(task_data)
+
 
         print(f"Here is the updated list;\n{tasks}.")
 
