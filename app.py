@@ -1,73 +1,123 @@
-from fastapi import FastAPI
-import data_manager 
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field 
+import data_manager
 import task_service
+import os
+import uvicorn
 
-# Start the FastAPI Engine.
+app = FastAPI(title="To Do List")
 
-app = FastAPI(title = "To Do List")
+# Enable CORS so frontend apps can safely communicate with this backend
+app.add_middleware(
+    CORSMiddleware, 
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"], 
+    allow_headers=["*"],
+)
 
-# Boot up data from the disk into RAM 
 tasks = data_manager.load_tasks()
 
-@app.get("/")
+# ==========================================
+# PYDANTIC SCHEMA DEFINITION
+# ==========================================
+class TaskCreateSchema(BaseModel):
+    """
+    Defines the exact structural contract for creating a new task.
+    FastAPI will automatically validate that incoming payloads match this shape.
+    """
+    title: str = Field(..., min_length=1, max_length=100, description="The descriptive title of the task.")
+    priority: str = Field(default="Medium", description="Can be High, Medium, or Low.")
+    due_date: str = Field(default="None", description="Optional deadline date string.")
 
+# ==========================================
+# ENDPOINTS
+# ==========================================
+
+@app.get("/")
 def home():
-    """This replaces the welcome prints from the terminal."""
     return {"status": "Online", "message": "Welcome to your Web Backend!"}
 
 @app.get("/tasks")
-
 def read_all_tasks():
-    """Replaces Option 2. Returns the live list"""
     return tasks
 
 @app.post("/tasks")
-
-def create_task(title: str):
-    """Replaces Option 1. Takes data from the web, runs logic, and saves it."""
-
+def create_task(task_payload: TaskCreateSchema):
+    """
+    Receives a structured JSON request body validated by TaskCreateSchema.
+    """
     global tasks
-
-    tasks = task_service.add_new_record(tasks, title)
-
+    
+    # Convert Pydantic object back into a standard Python dictionary
+    task_dict = task_payload.model_dump()
+    
+    # Prepare the standard item structure our app expects
+    new_record = {
+        "text": task_dict["title"],
+        "completed": False,
+        "priority": task_dict["priority"],
+        "due_date": task_dict["due_date"]
+    }
+    
+    tasks.append(new_record)
+    data_manager.save_tasks(tasks)
+    
     return {"message": "Success! Task recorded.", "current_dataset": tasks}
 
 
+# DELETE PARTICULAR TASK
+
 @app.delete("/tasks/{task_index}")
-
 def delete_task(task_index: int):
-    """Replace your terminal Delete option. Removes a task by its index position."""
-
     global tasks
+    # Proper HTTP 404 Error Handling if index is out of bounds
+    if task_index < 0 or task_index >= len(tasks):
+        raise HTTPException(status_code=404, detail="Task index out of bounds.")
+        
+    deleted_item = tasks.pop(task_index)
+    data_manager.save_tasks(tasks)
+    return {"message": f"Successfully deleted: {deleted_item['text']}"}
 
-    if 0 <= task_index < len(tasks):
-
-        deleted_item = tasks.pop(task_index)
-
-        data_manager.save_data(tasks)
-
-        return {"message": f"Successfully deleted: {deleted_item['text']}", "task": tasks}
-
-    return {"error": "Invalid index. Task does not exist."}
-
+# UPDATE COMPLETION OF A TASK
 @app.put("/tasks/{task_index}/toggle")
-
-def toogle_task_completion(task_index: int):
-
-    """Flips the completion status of a specific task."""
-
+def toggle_task_completion(task_index: int):
     global tasks
-
-    if 0<= task_index < len(tasks):
-
-        tasks[task_index]["completed"] = not tasks[task_index]["completed"]
-
-        data_manager.save_data(tasks)
-
-        status_string = "Completed" if tasks[task_index]["completed"] else "Incomplete"
-        return {"message": f"Task status updated to {status_string}!", "task": tasks[task_index]}
-
-    return {"error": "Invalid index. Task does not exist."}
+    # Proper HTTP 404 Error Handling if index is out of bounds
+    if task_index < 0 or task_index >= len(tasks):
+        raise HTTPException(status_code=404, detail="Task index out of bounds.")
+        
+    tasks[task_index]["completed"] = not tasks[task_index]["completed"]
+    data_manager.save_tasks(tasks)
     
+    status_string = "Completed" if tasks[task_index]["completed"] else "Incomplete"
+    return {"message": f"Task status updated to {status_string}!", "task": tasks[task_index]}
+
+# DELETE ALL THE TASKS
+
+@app.delete("/tasks")
+def delete_everything():
+
+    tasks.clear()
+    data_manager.save_tasks(tasks)
+    return {"message": f"All Tasks Deleted!!"}
+
+# SEARCH TASK USING KEYWORD
+
+@app.get("/tasks/search/{snippet}")
+def search_snippet(snippet: str):
+    global tasks
+    found = task_service.search_task(tasks, snippet)
+    return {
+        "message": f"Search Successfull.",
+        "query": snippet,
+        "results": found
+    }
 
 
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    uvicorn.run("app:app", host="0.0.0.0", port=port)
