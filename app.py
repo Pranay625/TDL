@@ -115,6 +115,15 @@ def search_snippet(snippet: str):
         "results": found
     }
 
+# TO COUNT THE COMPLETED TASKS OUT OF TOTAL
+
+@app.get("/tasks/count")
+def count_complete():
+    global tasks
+    count, total = task_service.get_counts(tasks)
+    return{
+        "Message": f"{count} completed out of {total}.", 
+    }
 
 
 
