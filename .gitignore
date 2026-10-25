@@ -10,3 +10,5 @@ database.json
 venv/
 __pycache__/
 *.pyc
+
+todo_backend.zip
