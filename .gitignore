@@ -1,0 +1,12 @@
+# Ignore local environment secrets
+
+.env
+
+# Ignore local databases and JSON files
+
+database.json
+
+# Ignore Python virtual environments and cache
+venv/
+__pycache__/
+*.pyc
