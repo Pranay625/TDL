@@ -1,14 +1,14 @@
 # Ignore local environment secrets
-
 .env
 
 # Ignore local databases and JSON files
-
 database.json
+todo.db
 
 # Ignore Python virtual environments and cache
-venv/
+.venv/
 __pycache__/
 *.pyc
 
-todo_backend.zip
+# Ignore backup zip files
+todo-backend.zip
